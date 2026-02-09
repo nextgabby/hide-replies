@@ -3,12 +3,15 @@ import { query } from '../db/index.js';
 import { processReply } from './replyHider.js';
 
 // Validate CRC challenge from Twitter
+// Uses Consumer Secret (API Secret), not OAuth 2.0 Client Secret
 export function validateCRC(crcToken) {
+  const secret = process.env.X_API_SECRET || process.env.X_CLIENT_SECRET;
   const hmac = crypto
-    .createHmac('sha256', process.env.X_CLIENT_SECRET)
+    .createHmac('sha256', secret)
     .update(crcToken)
     .digest('base64');
 
+  console.log('CRC validation - using secret:', secret ? 'present' : 'MISSING');
   return `sha256=${hmac}`;
 }
 
