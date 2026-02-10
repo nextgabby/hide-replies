@@ -27,7 +27,8 @@ export function useAuth() {
   }, [fetchUser]);
 
   const login = () => {
-    window.location.href = '/api/auth/login';
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    window.location.href = `${apiUrl}/api/auth/login`;
   };
 
   const logout = async () => {
