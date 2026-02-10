@@ -139,6 +139,13 @@ export async function subscribeUser() {
   }
 
   const errorText = await response.text();
+
+  // Check if already subscribed (this is actually success)
+  if (errorText.includes('DuplicateSubscription') || errorText.includes('already exists')) {
+    console.log('User already subscribed to webhook (this is fine)');
+    return { success: true, alreadySubscribed: true };
+  }
+
   console.error('Subscription failed:', response.status, errorText);
 
   let error;
