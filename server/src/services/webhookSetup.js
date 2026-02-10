@@ -106,13 +106,14 @@ export async function deleteWebhook(webhookId) {
   return { success: true };
 }
 
-// Subscribe using OAuth 1.0a (v1.1 Account Activity API)
+// Subscribe using OAuth 1.0a (v2 Account Activity API)
 export async function subscribeUser() {
-  // Use v1.1 Account Activity API for subscriptions
-  const url = `https://api.twitter.com/1.1/account_activity/all/${WEBHOOK_ENV}/subscriptions.json`;
+  // Use v2 Account Activity API for subscriptions
+  // Endpoint: POST https://api.x.com/2/account_activity/webhooks/{webhook_id}/subscriptions/all
+  const url = `https://api.x.com/2/account_activity/webhooks/${WEBHOOK_ID}/subscriptions/all`;
 
   console.log('Attempting to subscribe user with OAuth 1.0a');
-  console.log('Webhook env:', WEBHOOK_ENV);
+  console.log('Webhook ID:', WEBHOOK_ID);
   console.log('URL:', url);
   console.log('Using API Key:', process.env.X_API_KEY ? 'present' : 'MISSING');
   console.log('Using Access Token:', process.env.X_ACCESS_TOKEN ? 'present' : 'MISSING');
@@ -123,15 +124,18 @@ export async function subscribeUser() {
     method: 'POST',
     headers: {
       Authorization: authHeader,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({}),
   });
 
   console.log('Subscription response status:', response.status);
 
-  // 204 = success (already subscribed or newly subscribed)
-  if (response.status === 204 || response.ok) {
+  // 200/201/204 = success
+  if (response.ok || response.status === 204) {
     console.log('User successfully subscribed to webhook');
-    return { success: true };
+    const data = await response.json().catch(() => ({ subscribed: true }));
+    return { success: true, data };
   }
 
   const errorText = await response.text();
@@ -147,22 +151,21 @@ export async function subscribeUser() {
   throw new Error(`Failed to subscribe user: ${JSON.stringify(error)}`);
 }
 
-// Check if user is subscribed using OAuth 1.0a (v1.1)
+// Check if user is subscribed (v2)
 export async function checkSubscription() {
-  const url = `https://api.twitter.com/1.1/account_activity/all/${WEBHOOK_ENV}/subscriptions.json`;
+  const url = `https://api.x.com/2/account_activity/webhooks/${WEBHOOK_ID}/subscriptions/all`;
   const authHeader = generateOAuth1Header('GET', url);
 
   const response = await fetch(url, {
     headers: { Authorization: authHeader },
   });
 
-  // 204 = subscribed
-  return response.status === 204;
+  return response.ok || response.status === 204;
 }
 
-// List all subscriptions (v1.1)
+// List all subscriptions (v2)
 export async function listSubscriptions() {
-  const url = `https://api.twitter.com/1.1/account_activity/all/${WEBHOOK_ENV}/subscriptions/list.json`;
+  const url = `https://api.x.com/2/account_activity/webhooks/${WEBHOOK_ID}/subscriptions/all`;
 
   const response = await fetch(url, {
     headers: { Authorization: getBearerAuth() },
