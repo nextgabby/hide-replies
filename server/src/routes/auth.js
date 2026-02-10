@@ -91,7 +91,7 @@ router.get('/callback', async (req, res) => {
     // Generate JWT
     const token = generateToken(userId, twitterUser.id);
 
-    // Set cookie and redirect to frontend
+    // Set cookie (for same-domain setups)
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -99,7 +99,8 @@ router.get('/callback', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.redirect(`${process.env.FRONTEND_URL}?auth=success`);
+    // Also pass token in URL for cross-domain setups
+    res.redirect(`${process.env.FRONTEND_URL}?auth=success&token=${encodeURIComponent(token)}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.redirect(`${process.env.FRONTEND_URL}?error=auth_failed`);

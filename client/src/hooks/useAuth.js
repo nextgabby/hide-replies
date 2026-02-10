@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../api/client';
+import api, { setAuthToken } from '../api/client';
 
 export function useAuth() {
   const [user, setUser] = useState(null);
@@ -23,6 +23,24 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    // Check for token in URL (from OAuth callback)
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (token) {
+      // Save token to localStorage
+      localStorage.setItem('auth_token', token);
+      setAuthToken(token);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      // Check localStorage for existing token
+      const savedToken = localStorage.getItem('auth_token');
+      if (savedToken) {
+        setAuthToken(savedToken);
+      }
+    }
+
     fetchUser();
   }, [fetchUser]);
 
@@ -34,6 +52,8 @@ export function useAuth() {
   const logout = async () => {
     try {
       await api.logout();
+      localStorage.removeItem('auth_token');
+      setAuthToken(null);
       setUser(null);
     } catch (err) {
       console.error('Logout error:', err);
