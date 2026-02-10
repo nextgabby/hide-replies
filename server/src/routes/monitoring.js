@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query } from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { scanRecentReplies } from '../services/replyHider.js';
-import { subscribeUser, checkSubscription } from '../services/webhookSetup.js';
+import { subscribeUserWithToken, checkSubscription } from '../services/webhookSetup.js';
 
 const router = Router();
 
@@ -58,10 +58,21 @@ router.post('/scan', authMiddleware, async (req, res) => {
   }
 });
 
-// Subscribe to webhook events (uses OAuth 1.0a from env vars)
+// Subscribe to webhook events using user's OAuth 2.0 token
 router.post('/subscribe', authMiddleware, async (req, res) => {
   try {
-    await subscribeUser();
+    // Get user's access token from database
+    const userResult = await query(
+      'SELECT access_token FROM users WHERE id = $1',
+      [req.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const accessToken = userResult.rows[0].access_token;
+    await subscribeUserWithToken(accessToken);
     res.json({ success: true, message: 'Subscribed to webhook events' });
   } catch (error) {
     console.error('Error subscribing to webhooks:', error);

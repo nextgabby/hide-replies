@@ -106,24 +106,21 @@ export async function deleteWebhook(webhookId) {
   return { success: true };
 }
 
-// Subscribe using OAuth 1.0a (v2 Account Activity API)
-export async function subscribeUser() {
+// Subscribe user using their OAuth 2.0 token (for multi-user support)
+export async function subscribeUserWithToken(userAccessToken) {
   // Use v2 Account Activity API for subscriptions
   // Endpoint: POST https://api.x.com/2/account_activity/webhooks/{webhook_id}/subscriptions/all
   const url = `https://api.x.com/2/account_activity/webhooks/${WEBHOOK_ID}/subscriptions/all`;
 
-  console.log('Attempting to subscribe user with OAuth 1.0a');
+  console.log('Attempting to subscribe user with OAuth 2.0 token');
   console.log('Webhook ID:', WEBHOOK_ID);
   console.log('URL:', url);
-  console.log('Using API Key:', process.env.X_API_KEY ? 'present' : 'MISSING');
-  console.log('Using Access Token:', process.env.X_ACCESS_TOKEN ? 'present' : 'MISSING');
-
-  const authHeader = generateOAuth1Header('POST', url);
+  console.log('User token:', userAccessToken ? 'present' : 'MISSING');
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      Authorization: authHeader,
+      Authorization: `Bearer ${userAccessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({}),
@@ -156,6 +153,34 @@ export async function subscribeUser() {
   }
 
   throw new Error(`Failed to subscribe user: ${JSON.stringify(error)}`);
+}
+
+// Legacy: Subscribe using OAuth 1.0a from env vars (fallback)
+export async function subscribeUser() {
+  const url = `https://api.x.com/2/account_activity/webhooks/${WEBHOOK_ID}/subscriptions/all`;
+
+  console.log('Attempting to subscribe with OAuth 1.0a (env vars)');
+  const authHeader = generateOAuth1Header('POST', url);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (response.ok || response.status === 204) {
+    return { success: true };
+  }
+
+  const errorText = await response.text();
+  if (errorText.includes('DuplicateSubscription') || errorText.includes('already exists')) {
+    return { success: true, alreadySubscribed: true };
+  }
+
+  throw new Error(`Failed to subscribe: ${errorText}`);
 }
 
 // Check if user is subscribed (v2)

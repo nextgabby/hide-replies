@@ -3,7 +3,8 @@ import crypto from 'crypto';
 import { query } from '../db/index.js';
 import { generateAuthUrl, exchangeCodeForTokens } from '../services/twitter.js';
 import { generateToken, authMiddleware } from '../middleware/auth.js';
-import { subscribeUser } from '../services/webhookSetup.js';
+import { subscribeUserWithToken } from '../services/webhookSetup.js';
+// Uses each user's OAuth 2.0 token for multi-user webhook subscription support
 
 const router = Router();
 
@@ -81,9 +82,10 @@ router.get('/callback', async (req, res) => {
     const userId = result.rows[0].id;
 
     // Subscribe user to Account Activity API for real-time webhook events
+    // Uses the user's OAuth 2.0 access token for multi-user support
     try {
-      await subscribeUser();
-      console.log('User subscribed to Account Activity API');
+      await subscribeUserWithToken(accessToken);
+      console.log(`User ${twitterUser.username} subscribed to Account Activity API`);
     } catch (subError) {
       console.error('Failed to subscribe user to webhooks (non-fatal):', subError.message);
     }
