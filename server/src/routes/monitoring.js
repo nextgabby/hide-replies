@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db/index.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { scanRecentReplies } from '../services/replyHider.js';
+import { subscribeUser, checkSubscription } from '../services/webhookSetup.js';
 
 const router = Router();
 
@@ -54,6 +55,49 @@ router.post('/scan', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error running scan:', error);
     res.status(500).json({ error: 'Failed to run scan' });
+  }
+});
+
+// Subscribe to webhook events
+router.post('/subscribe', authMiddleware, async (req, res) => {
+  try {
+    // Get user's access token
+    const userResult = await query(
+      'SELECT access_token FROM users WHERE id = $1',
+      [req.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { access_token } = userResult.rows[0];
+    await subscribeUser(access_token);
+    res.json({ success: true, message: 'Subscribed to webhook events' });
+  } catch (error) {
+    console.error('Error subscribing to webhooks:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check subscription status
+router.get('/subscription', authMiddleware, async (req, res) => {
+  try {
+    const userResult = await query(
+      'SELECT access_token FROM users WHERE id = $1',
+      [req.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { access_token } = userResult.rows[0];
+    const isSubscribed = await checkSubscription(access_token);
+    res.json({ subscribed: isSubscribed });
+  } catch (error) {
+    console.error('Error checking subscription:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
