@@ -58,21 +58,10 @@ router.post('/scan', authMiddleware, async (req, res) => {
   }
 });
 
-// Subscribe to webhook events
+// Subscribe to webhook events (uses OAuth 1.0a from env vars)
 router.post('/subscribe', authMiddleware, async (req, res) => {
   try {
-    // Get user's access token
-    const userResult = await query(
-      'SELECT access_token FROM users WHERE id = $1',
-      [req.userId]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const { access_token } = userResult.rows[0];
-    await subscribeUser(access_token);
+    await subscribeUser();
     res.json({ success: true, message: 'Subscribed to webhook events' });
   } catch (error) {
     console.error('Error subscribing to webhooks:', error);
@@ -83,17 +72,7 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
 // Check subscription status
 router.get('/subscription', authMiddleware, async (req, res) => {
   try {
-    const userResult = await query(
-      'SELECT access_token FROM users WHERE id = $1',
-      [req.userId]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const { access_token } = userResult.rows[0];
-    const isSubscribed = await checkSubscription(access_token);
+    const isSubscribed = await checkSubscription();
     res.json({ subscribed: isSubscribed });
   } catch (error) {
     console.error('Error checking subscription:', error);

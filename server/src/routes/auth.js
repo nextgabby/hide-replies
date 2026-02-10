@@ -82,7 +82,7 @@ router.get('/callback', async (req, res) => {
 
     // Subscribe user to Account Activity API for real-time webhook events
     try {
-      await subscribeUser(accessToken);
+      await subscribeUser();
       console.log('User subscribed to Account Activity API');
     } catch (subError) {
       console.error('Failed to subscribe user to webhooks (non-fatal):', subError.message);
