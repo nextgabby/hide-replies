@@ -30,7 +30,7 @@ services:
   - type: web
     name: x-reply-hider-client
     runtime: static
-    buildCommand: npm install && npm run build --workspace=client
+    buildCommand: rm -rf node_modules package-lock.json && npm install && npm run build --workspace=client
     staticPublishPath: client/dist
     envVars:
       - key: VITE_API_URL
